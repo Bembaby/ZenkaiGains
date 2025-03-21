@@ -1,3 +1,9 @@
+# Other rules...
+
+# Ignore run configuration files (contains secrets)
+.run/
+
+# Existing rules
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
@@ -22,9 +28,9 @@ target/
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+dist/
+nbdist/
+.nb-gradle/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
