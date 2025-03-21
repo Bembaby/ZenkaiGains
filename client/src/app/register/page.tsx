@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/auth";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useAuthRedirect } from "@/hooks/auth";
 import { motion } from "framer-motion";
+import GoogleOAuthButton from "@/components/ui/google-button";
 
 const Register = () => {
   const { showError, showInfo } = useToast();
@@ -276,30 +277,9 @@ const Register = () => {
                 <span className="px-2 bg-gray-800 text-gray-400">Or join with</span>
               </div>
             </div>
-            <div className="mt-6">
-              <Button
-                type="button"
-                onClick={() => {
-                  // Step 1: Set your Google OAuth parameters
-                  const clientId = "1090175341224-fmv0448rh2t2km73hgs3mbmdqtr6l3ba.apps.googleusercontent.com";
-                  const redirectUri = encodeURIComponent("http://localhost:8080/oauth/google/callback");
-                  const scope = encodeURIComponent("profile email");
-                  const responseType = "code";
-                  const accessType = "offline";
-                  const prompt = "consent";
-
-                  // Step 2: Construct the Google authorization URL
-                  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}&access_type=${accessType}&prompt=${prompt}`;
-
-                  // Step 3: Redirect the user to Google
-                  window.location.href = googleAuthUrl;
-                }}
-                className="w-full text-md bg-gray-800 py-2 px-4 border border-gray-700 rounded-md hover:bg-gray-700 cursor-pointer whitespace-nowrap text-white"
-              >
-                <i className="fab fa-google mr-2 text-red-500"></i>
-                JOIN WITH GOOGLE
-              </Button>
-            </div>
+              <div className="mt-6">
+                <GoogleOAuthButton label="Join with Google" />
+              </div>
           </div>
         </form>
         

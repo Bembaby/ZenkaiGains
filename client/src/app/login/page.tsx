@@ -12,6 +12,8 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { useAuthRedirect } from "@/hooks/auth";
 import { motion } from "framer-motion";
 import NavBar from "@/components/ui/nav-bar";
+import GoogleOAuthButton from "@/components/ui/google-button";
+
 
 const Login: React.FC = () => {
   const { showError, showSuccess } = useToast();
@@ -324,28 +326,7 @@ const Login: React.FC = () => {
                   </div>
                 </div>
                 <div className="mt-6">
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      const clientId = "1090175341224-fmv0448rh2t2km73hgs3mbmdqtr6l3ba.apps.googleusercontent.com";
-                      const redirectUri = encodeURIComponent("http://localhost:8080/oauth/google/callback");
-                      const scope = encodeURIComponent("profile email");
-                      const responseType = "code";
-                      const accessType = "offline";
-                      const prompt = "consent";
-                      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}&access_type=${accessType}&prompt=${prompt}`;
-                      window.location.href = googleAuthUrl;
-                    }}
-                    className="w-full flex items-center justify-center py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-md text-gray-200 font-medium transition-all duration-200"
-                  >
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
-                      />
-                    </svg>
-                    CONTINUE WITH GOOGLE
-                  </Button>
+                  <GoogleOAuthButton />
                 </div>
               </div>
             )}
