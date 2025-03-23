@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // UI Components
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import NavBar from '@/components/ui/nav-bar';
 
-import { Camera, Save, User, Mail, Edit, X, Check, Loader2 } from 'lucide-react';
+import { Camera, Save, User, Edit, X, Check, Loader2, BookOpen, Flame, Star, Trophy } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -34,9 +34,9 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Only include fields that are editable (email is now hidden)
   const [formData, setFormData] = useState({
     username: '',
-    email: '',
     bio: '',
   });
 
@@ -56,7 +56,6 @@ export default function ProfilePage() {
         setProfile(data);
         setFormData({
           username: data.username,
-          email: data.email,
           bio: data.bio || '',
         });
         setIsLoading(false);
@@ -133,7 +132,6 @@ export default function ProfilePage() {
     if (profile) {
       setFormData({
         username: profile.username,
-        email: profile.email,
         bio: profile.bio || '',
       });
     }
@@ -143,14 +141,37 @@ export default function ProfilePage() {
     setError(null);
   };
 
+  const handleViewPublicProfile = () => {
+    if (profile?.username) {
+      router.push(`/public/profile/${profile.username}`);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-black text-white">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-900 via-gray-900 to-black text-white">
         <NavBar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-red-500 mx-auto" />
-            <p className="mt-4 text-xl text-gray-400">Powering up...</p>
+            <motion.div
+              animate={{
+                rotate: 360,
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+                scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+              }}
+            >
+              <Loader2 className="h-16 w-16 text-red-500 mx-auto drop-shadow-[0_0_15px_rgba(239,68,68,0.7)]" />
+            </motion.div>
+            <motion.p 
+              className="mt-6 text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-600"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              Powering up...
+            </motion.p>
           </div>
         </div>
       </div>
@@ -158,76 +179,173 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white">
-      <NavBar />
-      <div className="relative bg-gradient-to-r from-red-900 to-black py-16">
-        <div 
-          className="absolute inset-0 bg-center z-0 opacity-20"
-          style={{ backgroundImage: "url('/images/anime-action-bg.jpg')", backgroundSize: "cover" }}
-        ></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <h1 className="text-4xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-600">
-            WARRIOR PROFILE
-          </h1>
-          <p className="text-center text-gray-300">
-            Update your battle stats and enhance your legend
-          </p>
-        </div>
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-900 via-gray-900 to-black text-white">
+      <div className="fixed inset-0 z-0 opacity-10 pointer-events-none">
+        <div className="absolute inset-0 bg-[url('/images/anime-pattern.png')] bg-repeat"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-red-500/20 via-purple-500/20 to-blue-500/20"></div>
       </div>
-      <div className="container mx-auto px-4 py-12">
+      
+      <NavBar />
+      
+      <motion.div 
+        className="relative bg-gradient-to-r from-red-900 via-purple-900 to-red-900 py-20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Animated background energy effects */}
+          <div className="absolute inset-0 bg-center z-0 opacity-30"
+            style={{ backgroundImage: "url('/images/anime-action-bg.jpg')", backgroundSize: "cover" }}
+          ></div>
+          
+          {/* Animated energy particles */}
+          <div className="absolute inset-0">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-6 bg-red-500 rounded-full shadow-lg shadow-red-500/50"
+                initial={{ 
+                  x: Math.random() * 100 + "%", 
+                  y: "120%", 
+                  opacity: 0.3 + Math.random() * 0.7 
+                }}
+                animate={{ 
+                  y: "-20%",
+                  opacity: [0.7, 0, 0.7],
+                  scale: [1, 1.5, 1]
+                }}
+                transition={{ 
+                  duration: 2 + Math.random() * 4, 
+                  repeat: Infinity, 
+                  ease: "easeOut",
+                  delay: Math.random() * 5
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10 py-8">
+          <motion.h1 
+            className="text-5xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-yellow-400 to-red-500"
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            WARRIOR PROFILE
+          </motion.h1>
+          
+          <motion.div
+            className="w-32 h-1 mx-auto bg-gradient-to-r from-red-500 via-yellow-400 to-red-500 rounded-full mb-4"
+            initial={{ width: 0 }}
+            animate={{ width: 128 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          />
+          
+          <motion.p 
+            className="text-center text-gray-200 text-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            Update your battle stats and enhance your legend
+          </motion.p>
+        </div>
+      </motion.div>
+      
+      <div className="container mx-auto px-4 py-12 relative z-10">
         <div className="max-w-4xl mx-auto">
-          {success && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-green-950 border-l-4 border-green-500 text-green-200 flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <Check className="mr-2 h-5 w-5" />
-                <span>{success}</span>
-              </div>
-              <button onClick={() => setSuccess(null)}>
-                <X className="h-5 w-5" />
-              </button>
-            </motion.div>
-          )}
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-red-950 border-l-4 border-red-500 text-red-200 flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <X className="mr-2 h-5 w-5" />
-                <span>{error}</span>
-              </div>
-              <button onClick={() => setError(null)}>
-                <X className="h-5 w-5" />
-              </button>
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {success && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mb-6 p-4 bg-green-900/80 backdrop-blur-sm border-l-4 border-green-500 text-green-200 rounded-r-md flex items-center justify-between"
+              >
+                <div className="flex items-center">
+                  <motion.div 
+                    animate={{ rotate: [0, 15, -15, 0] }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    <Check className="mr-2 h-5 w-5" />
+                  </motion.div>
+                  <span>{success}</span>
+                </div>
+                <button onClick={() => setSuccess(null)}>
+                  <X className="h-5 w-5" />
+                </button>
+              </motion.div>
+            )}
+            
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mb-6 p-4 bg-red-900/80 backdrop-blur-sm border-l-4 border-red-500 text-red-200 rounded-r-md flex items-center justify-between"
+              >
+                <div className="flex items-center">
+                  <motion.div 
+                    animate={{ rotate: [0, 15, -15, 0] }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    <X className="mr-2 h-5 w-5" />
+                  </motion.div>
+                  <span>{error}</span>
+                </div>
+                <button onClick={() => setError(null)}>
+                  <X className="h-5 w-5" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
           <div className="grid gap-8 md:grid-cols-7">
             {/* Profile Card */}
-            <div className="md:col-span-3">
-              <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-none shadow-lg shadow-red-500/10 h-full">
-                <CardHeader className="pb-0">
-                  <CardTitle className="text-red-400">BATTLE STATS</CardTitle>
+            <motion.div 
+              className="md:col-span-3"
+              initial={{ x: -50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.6 }}
+            >
+              <Card className="bg-gradient-to-br from-gray-900 via-purple-900/30 to-gray-900 border border-red-500/20 rounded-lg overflow-hidden shadow-[0_0_25px_rgba(239,68,68,0.3)] h-full relative">
+                <div className="absolute inset-0 bg-[url('/images/anime-card-texture.png')] mix-blend-overlay opacity-20"></div>
+                
+                <CardHeader className="pb-0 relative z-10">
+                  <CardTitle className="text-red-400 flex items-center">
+                    <Flame className="mr-2 h-5 w-5 text-yellow-500" />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-yellow-500">BATTLE STATS</span>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
+                
+                <CardContent className="relative z-10">
                   <div className="flex flex-col items-center justify-center py-6">
-                    {/* Profile Picture */}
-                    <div className="relative mb-4">
-                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-red-600 shadow-lg shadow-red-600/30">
+                    {/* Profile Picture with animated border */}
+                    <div className="relative mb-6">
+                      <motion.div 
+                        className="absolute -inset-1 rounded-full bg-gradient-to-r from-red-600 via-yellow-400 to-red-600"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                      />
+                      
+                      <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-gray-900 relative z-10 shadow-lg">
                         <img 
                           src={previewUrl || (profile?.profilePictureUrl || '/images/default-profile.jpg')} 
                           alt="Profile"
                           className="w-full h-full object-cover"
                         />
                       </div>
+                      
                       {isEditing && (
-                        <div className="absolute bottom-0 right-0">
+                        <motion.div 
+                          className="absolute bottom-0 right-0 z-20"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
                           <label htmlFor="profile-picture" className="cursor-pointer">
-                            <div className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors">
+                            <div className="bg-gradient-to-r from-red-600 to-red-800 text-white p-3 rounded-full shadow-lg shadow-red-600/30 hover:shadow-red-600/50 transition-all">
                               <Camera className="h-5 w-5" />
                             </div>
                             <input 
@@ -238,147 +356,260 @@ export default function ProfilePage() {
                               onChange={handleFileSelect}
                             />
                           </label>
-                        </div>
+                        </motion.div>
                       )}
                     </div>
-                    <h2 className="text-2xl font-bold">{profile?.username}</h2>
-                    <p className="text-gray-400">{profile?.email}</p>
-                    <div className="mt-6 w-full">
+                    
+                    <motion.h2 
+                      className="text-2xl font-bold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      {profile?.username}
+                    </motion.h2>
+                    
+                    {/* Power level glow effect */}
+                    <motion.div
+                      className="text-yellow-500 text-sm font-bold flex items-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <Star className="h-4 w-4 mr-1 text-yellow-400" />
+                      <span>POWER LEVEL {profile?.powerLevel?.toLocaleString() || ''}</span>
+                    </motion.div>
+                    
+                    {/* Bio Display */}
+                    {profile?.bio && !isEditing && (
+                      <motion.div 
+                        className="mt-6 text-center px-2"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                      >
+                        <div className="flex items-center justify-center mb-2">
+                          <BookOpen className="h-4 w-4 mr-2 text-red-400" />
+                          <span className="text-gray-400 text-sm">WARRIOR BIO</span>
+                        </div>
+                        <div className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-md border border-gray-700/50">
+                          <p className="text-gray-300 text-sm italic">"{profile.bio}"</p>
+                        </div>
+                      </motion.div>
+                    )}
+                    
+                    <motion.div 
+                      className="mt-6 w-full"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
                       <div className="flex justify-between mb-1">
                         <span className="text-gray-400">Power Level</span>
                         <span className="text-red-400 font-bold">{profile?.powerLevel?.toLocaleString() || ''}</span>
                       </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-red-600 to-red-400 h-2 rounded-full" 
-                          style={{ width: `${Math.min(100, (profile?.powerLevel || 0) / 100)}%` }}
-                        ></div>
+                      <div className="w-full bg-gray-800/80 rounded-full h-3 p-0.5 backdrop-blur-sm">
+                        <motion.div 
+                          className="bg-gradient-to-r from-red-600 via-yellow-500 to-red-400 h-2 rounded-full relative"
+                          style={{ width: '0%' }}
+                          animate={{ width: `${Math.min(100, (profile?.powerLevel || 0) / 100)}%` }}
+                          transition={{ duration: 1, delay: 0.6 }}
+                        >
+                          <motion.div 
+                            className="absolute top-0 right-0 h-full w-1 bg-white rounded-full"
+                            animate={{ 
+                              opacity: [1, 0.5, 1],
+                              boxShadow: [
+                                '0 0 5px 2px rgba(255,255,255,0.7)',
+                                '0 0 12px 4px rgba(255,255,255,0.9)',
+                                '0 0 5px 2px rgba(255,255,255,0.7)'
+                              ]
+                            }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
+                        </motion.div>
                       </div>
-                    </div>
-                    <div className="mt-6 w-full grid grid-cols-2 gap-4">
-                      <div className="bg-gray-800 p-4 rounded-lg">
+                    </motion.div>
+                    
+                    <motion.div 
+                      className="mt-6 w-full grid grid-cols-2 gap-4"
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      <motion.div 
+                        className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-lg border border-gray-700/50 hover:border-red-500/50 transition-colors"
+                        whileHover={{ y: -5, boxShadow: '0 5px 15px rgba(239,68,68,0.3)' }}
+                      >
                         <p className="text-gray-400 text-sm">Joined</p>
                         <p className="font-bold">
                           {profile?.joinedDate ? new Date(profile.joinedDate).toLocaleDateString() : ''}
                         </p>
-                      </div>
-                      <div className="bg-gray-800 p-4 rounded-lg">
-                        <p className="text-gray-400 text-sm">Workouts</p>
-                        <p className="font-bold">{profile?.completedWorkouts}</p>
-                      </div>
-                    </div>
-                    {!isEditing && (
-                      <Button
-                        className="mt-6 bg-red-600 hover:bg-red-700 w-full flex items-center justify-center"
-                        onClick={() => setIsEditing(true)}
+                      </motion.div>
+                      <motion.div 
+                        className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-lg border border-gray-700/50 hover:border-red-500/50 transition-colors"
+                        whileHover={{ y: -5, boxShadow: '0 5px 15px rgba(239,68,68,0.3)' }}
                       >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Profile
-                      </Button>
+                        <p className="text-gray-400 text-sm">Workouts</p>
+                        <div className="flex items-center">
+                          <Trophy className="h-4 w-4 mr-1 text-yellow-500" />
+                          <p className="font-bold">{profile?.completedWorkouts}</p>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                    
+                    {!isEditing && (
+                      <motion.div 
+                        className="flex flex-col gap-4 mt-6 w-full"
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.8 }}
+                      >
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button
+                            className="bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 w-full flex items-center justify-center shadow-lg shadow-red-600/20 hover:shadow-red-600/40 transition-all"
+                            onClick={() => setIsEditing(true)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Profile
+                          </Button>
+                        </motion.div>
+                        
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button
+                            className="bg-gradient-to-r from-purple-700 to-purple-900 hover:from-purple-800 hover:to-purple-950 w-full flex items-center justify-center shadow-lg shadow-purple-600/20 hover:shadow-purple-600/40 transition-all"
+                            onClick={handleViewPublicProfile}
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            View Public Profile
+                          </Button>
+                        </motion.div>
+                      </motion.div>
                     )}
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </motion.div>
+            
             {/* Profile Edit Form */}
-            <div className="md:col-span-4">
-              <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-none shadow-lg shadow-red-500/10 h-full">
-                <CardHeader>
-                  <CardTitle className="text-red-400">
-                    {isEditing ? 'EDIT YOUR LEGEND' : 'WARRIOR DETAILS'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit}>
-                    <div className="space-y-6">
-                      <div>
-                        <div className="flex items-center mb-2">
-                          <User className="h-4 w-4 mr-2 text-red-400" />
-                          <Label htmlFor="username" className="text-gray-200">Warrior Name</Label>
-                        </div>
-                        {isEditing ? (
-                          <Input
-                            id="username"
-                            name="username"
-                            value={formData.username}
-                            onChange={handleInputChange}
-                            className="bg-gray-800 border-gray-700 focus:border-red-500 text-white"
-                            disabled={isSubmitting}
-                          />
-                        ) : (
-                          <p className="text-lg text-gray-300">{profile?.username}</p>
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center mb-2">
-                          <Mail className="h-4 w-4 mr-2 text-red-400" />
-                          <Label htmlFor="email" className="text-gray-200">Communication Scroll (Email)</Label>
-                        </div>
-                        {isEditing ? (
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            className="bg-gray-800 border-gray-700 focus:border-red-500 text-white"
-                            disabled={isSubmitting}
-                          />
-                        ) : (
-                          <p className="text-lg text-gray-300">{profile?.email}</p>
-                        )}
-                      </div>
-                      <div>
-                        <Label htmlFor="bio" className="block mb-2 text-gray-200">Warrior Bio</Label>
-                        {isEditing ? (
-                          <Textarea
-                            id="bio"
-                            name="bio"
-                            value={formData.bio}
-                            onChange={handleInputChange}
-                            className="bg-gray-800 border-gray-700 focus:border-red-500 text-white min-h-32"
-                            placeholder="Share your fitness goals and journey..."
-                            disabled={isSubmitting}
-                          />
-                        ) : (
-                          <p className="text-gray-300 whitespace-pre-wrap">{profile?.bio}</p>
-                        )}
-                      </div>
-                      {isEditing && (
-                        <div className="flex gap-4 pt-4">
-                          <Button
-                            type="submit"
-                            className="bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 flex-1"
-                            disabled={isSubmitting}
+            <AnimatePresence>
+              {isEditing && (
+                <motion.div 
+                  className="md:col-span-4"
+                  initial={{ x: 50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 50, opacity: 0 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <Card className="bg-gradient-to-br from-gray-900 via-purple-900/30 to-gray-900 border border-red-500/20 shadow-[0_0_25px_rgba(239,68,68,0.3)] rounded-lg overflow-hidden h-full relative">
+                    <div className="absolute inset-0 bg-[url('/images/anime-card-texture.png')] mix-blend-overlay opacity-20"></div>
+                    
+                    <CardHeader className="relative z-10">
+                      <CardTitle className="text-red-400 flex items-center">
+                        <Edit className="mr-2 h-5 w-5 text-red-500" />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-yellow-500">EDIT YOUR LEGEND</span>
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    <CardContent className="relative z-10">
+                      <form onSubmit={handleSubmit}>
+                        <div className="space-y-6">
+                          <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
                           >
-                            {isSubmitting ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Saving...
-                              </>
-                            ) : (
-                              <>
-                                <Save className="mr-2 h-4 w-4" />
-                                Save Changes
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleCancel}
-                            className="border-red-600 text-red-400 hover:bg-red-800/20 flex-1"
-                            disabled={isSubmitting}
+                            <div className="flex items-center mb-2">
+                              <User className="h-4 w-4 mr-2 text-red-400" />
+                              <Label htmlFor="username" className="text-gray-200">Warrior Name</Label>
+                            </div>
+                            <div className="relative">
+                              <Input
+                                id="username"
+                                name="username"
+                                value={formData.username}
+                                onChange={handleInputChange}
+                                className="bg-gray-800/60 backdrop-blur-sm border-gray-700 focus:border-red-500 focus:ring-red-500/30 text-white"
+                                disabled={isSubmitting}
+                              />
+                              <div className="absolute inset-0 pointer-events-none border border-red-500/0 focus-within:border-red-500/50 rounded-md transition-colors"></div>
+                            </div>
+                          </motion.div>
+                          
+                          <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
                           >
-                            Cancel
-                          </Button>
+                            <div className="flex items-center mb-2">
+                              <BookOpen className="h-4 w-4 mr-2 text-red-400" />
+                              <Label htmlFor="bio" className="text-gray-200">Warrior Bio</Label>
+                            </div>
+                            <div className="relative">
+                              <Textarea
+                                id="bio"
+                                name="bio"
+                                value={formData.bio}
+                                onChange={handleInputChange}
+                                className="bg-gray-800/60 backdrop-blur-sm border-gray-700 focus:border-red-500 focus:ring-red-500/30 text-white min-h-32"
+                                placeholder="Share your fitness goals and journey..."
+                                disabled={isSubmitting}
+                              />
+                              <div className="absolute inset-0 pointer-events-none border border-red-500/0 focus-within:border-red-500/50 rounded-md transition-colors"></div>
+                            </div>
+                            <p className="text-gray-400 text-xs mt-2">Tell other warriors about your fitness journey and goals.</p>
+                          </motion.div>
+                          
+                          <motion.div 
+                            className="flex gap-4 pt-4"
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                          >
+                            <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button
+                                type="submit"
+                                className="bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 w-full shadow-lg shadow-red-600/20 hover:shadow-red-600/40 transition-all"
+                                disabled={isSubmitting}
+                              >
+                                {isSubmitting ? (
+                                  <>
+                                    <motion.div
+                                      animate={{ rotate: 360 }}
+                                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    >
+                                      <Loader2 className="mr-2 h-4 w-4" />
+                                    </motion.div>
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Save Changes
+                                  </>
+                                )}
+                              </Button>
+                            </motion.div>
+                            
+                            <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleCancel}
+                                className="border-red-600 text-red-400 hover:bg-red-800/20 w-full"
+                                disabled={isSubmitting}
+                              >
+                                Cancel
+                              </Button>
+                            </motion.div>
+                          </motion.div>
                         </div>
-                      )}
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
