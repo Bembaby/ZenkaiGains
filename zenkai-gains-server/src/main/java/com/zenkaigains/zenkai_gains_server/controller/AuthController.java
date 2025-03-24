@@ -19,7 +19,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/auth")
@@ -61,11 +65,10 @@ public class AuthController {
     }
 
     /**
-     * ✅ Login and set JWT cookie
+     * ✅ Login and set JWT cookie (token now includes roles)
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        // findByEmail now returns Optional<User>, so handle it properly
         Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
         if (!userOpt.isPresent()) {
             return ResponseEntity.status(401).body("Invalid Credentials");
@@ -80,6 +83,7 @@ public class AuthController {
             return ResponseEntity.status(403).body("Please verify your email before logging in.");
         }
 
+        // Generate a JWT token that now contains a "roles" claim.
         String token = jwtService.generateToken(user);
 
         ResponseCookie cookie = ResponseCookie.from("jwt", token)
@@ -98,15 +102,39 @@ public class AuthController {
     /**
      * ✅ Get authenticated user's email
      */
+    /**
+     * ✅ Enhanced /auth/me that returns user email + roles in JSON.
+     */
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
         String token = extractToken(request);
-        if (token != null && jwtService.validateToken(token)) {
-            String email = jwtService.extractUsername(token);
-            return ResponseEntity.ok("Authenticated as " + email);
+        if (token == null || !jwtService.validateToken(token)) {
+            return ResponseEntity.status(401).body("Not authenticated");
         }
-        return ResponseEntity.status(401).body("Not authenticated");
+
+        // Extract email from JWT
+        String email = jwtService.extractUsername(token);
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+
+        User user = userOpt.get();
+
+        // Gather roles from user.getRoles()
+        // Suppose user.getRoles() returns List<Role> and role.getName() returns an Enum like ROLE_ADMIN
+        List<String> roles = user.getRoles().stream()
+                .map(role -> role.getName().name())  // e.g. "ROLE_ADMIN"
+                .collect(Collectors.toList());
+
+        // Return JSON with email + roles
+        Map<String, Object> response = new HashMap<>();
+        response.put("email", user.getEmail());
+        response.put("roles", roles);
+
+        return ResponseEntity.ok(response);
     }
+
 
     /**
      * ✅ Logout by clearing JWT cookie
@@ -138,7 +166,6 @@ public class AuthController {
         }
 
         String email = jwtService.extractUsername(token);
-        // findByEmail returns Optional<User>, so handle it
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (!userOpt.isPresent()) {
             System.out.println("❌ User not found in database.");
@@ -154,6 +181,7 @@ public class AuthController {
         System.out.println("✅ User profile found: " + user.getUsername());
         return ResponseEntity.ok(dto);
     }
+
     /**
      * ✅ Public Profile by username
      */
@@ -168,7 +196,7 @@ public class AuthController {
         dto.setUsername(user.getUsername());
         dto.setBio(user.getBio());
         dto.setProfilePictureUrl(user.getProfilePictureUrl());
-        dto.setJoinedDate(user.getCreatedAt()); // Assuming this is your joined date
+        dto.setJoinedDate(user.getCreatedAt());
 
         return ResponseEntity.ok(dto);
     }
@@ -184,14 +212,12 @@ public class AuthController {
         }
 
         String email = jwtService.extractUsername(token);
-        // findByEmail returns Optional<User>, so handle it
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (!userOpt.isPresent()) {
             return ResponseEntity.status(404).body("User not found");
         }
 
         User existingUser = userOpt.get();
-        // Update username, bio, and profile picture URL from the request
         existingUser.setUsername(updatedUser.getUsername());
         existingUser.setBio(updatedUser.getBio());
         existingUser.setProfilePictureUrl(updatedUser.getProfilePictureUrl());
@@ -204,7 +230,6 @@ public class AuthController {
      * ✅ Extract JWT token from Cookie OR Authorization Header (NEW FIX)
      */
     private String extractToken(HttpServletRequest request) {
-        // 1️⃣ Check Cookies
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("jwt".equals(cookie.getName())) {
@@ -213,14 +238,11 @@ public class AuthController {
                 }
             }
         }
-
-        // 2️⃣ Check Authorization Header
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             System.out.println("✅ Extracted JWT from Authorization header.");
             return authHeader.substring(7);
         }
-
         System.out.println("❌ No JWT token found.");
         return null;
     }
@@ -234,7 +256,6 @@ public class AuthController {
 
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
-
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
     }

@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/api")
 public class RegistrationController {
@@ -28,36 +30,35 @@ public class RegistrationController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegistrationRequest request) {
-        // Some basic validation
-        if     (request.getFirstName() == null || request.getFirstName().isEmpty() ||
-                request.getLastName() == null || request.getLastName().isEmpty() ||
-                request.getEmail() == null || request.getEmail().isEmpty() ||
-                request.getPassword() == null || request.getPassword().isEmpty()) {
+        // Basic validation...
+        if (request.getFirstName() == null || request.getFirstName().isEmpty() ||
+                request.getLastName() == null  || request.getLastName().isEmpty()  ||
+                request.getEmail() == null     || request.getEmail().isEmpty()     ||
+                request.getPassword() == null  || request.getPassword().isEmpty()) {
             return ResponseEntity.badRequest().body("All fields are required.");
         }
 
-        // check if email is in use
-        if(userRepository.findByEmail(request.getEmail()) != null){
+        // Check if email is in use
+        Optional<User> existingUser = userRepository.findByEmail(request.getEmail());
+        if (existingUser.isPresent()) {
             return ResponseEntity.badRequest().body("Email already in use.");
         }
 
-        // Create the user with verified flag set to false
+        // Create the user...
         User user = new User();
         user.setUsername(request.getEmail());
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
-        //Hash the passwords
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setIsVerified(false);
 
-        // save the user to the repository
         userRepository.save(user);
 
-        //Send a verification email
-        try{
+        // Send verification email...
+        try {
             emailVerificationService.createVerificationTokenForUser(user);
-        }catch (Exception e){
+        } catch (Exception e) {
             System.err.println("Error sending verification email: " + e.getMessage());
         }
 

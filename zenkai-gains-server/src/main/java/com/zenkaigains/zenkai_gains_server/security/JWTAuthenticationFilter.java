@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
@@ -34,25 +36,30 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
-        logger.debug("JWTAuthenticationFilter: Processing request for URI: {}", requestURI);
+        logger.debug("Processing request for URI: {}", requestURI);
 
         String token = extractTokenFromCookies(request);
         if (!StringUtils.hasText(token)) {
-            logger.debug("JWTAuthenticationFilter: No JWT token found in cookies.");
+            logger.debug("No JWT token found in cookies.");
         } else {
-            logger.debug("JWTAuthenticationFilter: JWT token found (masked): {}", maskToken(token));
+            logger.debug("JWT token found (masked): {}", maskToken(token));
         }
 
         if (StringUtils.hasText(token) && jwtService.validateToken(token)) {
             String username = jwtService.extractUsername(token);
-            logger.debug("JWTAuthenticationFilter: Token valid, extracted username: {}", username);
-            // Use an empty authority list so the authentication is properly set.
+            logger.debug("Token valid, extracted username: {}", username);
+            // Extract roles using our helper method in JWTService
+            List<String> roleStrings = jwtService.extractRoles(token);
+            List<SimpleGrantedAuthority> authorities = roleStrings.stream()
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
+
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+                    new UsernamePasswordAuthenticationToken(username, null, authorities);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } else {
-            logger.debug("JWTAuthenticationFilter: Token is invalid or missing.");
+            logger.debug("Token is invalid or missing.");
         }
         filterChain.doFilter(request, response);
     }
@@ -74,4 +81,5 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         }
         return token.substring(0, 5) + "****" + token.substring(token.length() - 5);
     }
+
 }
