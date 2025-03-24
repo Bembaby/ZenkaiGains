@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -58,7 +59,7 @@ public class GoogleOAuthController {
             GoogleOAuthUser googleUser = googleOAuthService.getUserFromIdToken(tokenResponse.getIdToken());
 
             // 3) Check if the user exists in the database; if not, create a new user.
-            User user = userRepository.findByEmail(googleUser.getEmail());
+            User user = userRepository.findByEmail(googleUser.getEmail()).orElse(null);
             if (user == null) {
                 user = new User();
                 user.setEmail(googleUser.getEmail());

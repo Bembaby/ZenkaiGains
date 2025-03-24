@@ -1,5 +1,6 @@
 package com.zenkaigains.zenkai_gains_server.controller;
 
+import com.zenkaigains.zenkai_gains_server.dto.UserPublicProfileDTO;
 import com.zenkaigains.zenkai_gains_server.entity.EmailVerificationToken;
 import com.zenkaigains.zenkai_gains_server.entity.User;
 import com.zenkaigains.zenkai_gains_server.repository.EmailVerificationTokenRepository;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -63,8 +65,14 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail());
-        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        // findByEmail now returns Optional<User>, so handle it properly
+        Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(401).body("Invalid Credentials");
+        }
+
+        User user = userOpt.get();
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             return ResponseEntity.status(401).body("Invalid Credentials");
         }
 
@@ -130,14 +138,39 @@ public class AuthController {
         }
 
         String email = jwtService.extractUsername(token);
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
+        // findByEmail returns Optional<User>, so handle it
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (!userOpt.isPresent()) {
             System.out.println("❌ User not found in database.");
             return ResponseEntity.status(404).body("User not found");
         }
 
+        User user = userOpt.get();
+        UserPublicProfileDTO dto = new UserPublicProfileDTO();
+        dto.setUsername(user.getUsername());
+        dto.setBio(user.getBio());
+        dto.setProfilePictureUrl(user.getProfilePictureUrl());
+        dto.setJoinedDate(user.getCreatedAt());
         System.out.println("✅ User profile found: " + user.getUsername());
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(dto);
+    }
+    /**
+     * ✅ Public Profile by username
+     */
+    @GetMapping("/public/profile/{username}")
+    public ResponseEntity<?> getPublicProfile(@PathVariable String username) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (!userOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        User user = userOpt.get();
+        UserPublicProfileDTO dto = new UserPublicProfileDTO();
+        dto.setUsername(user.getUsername());
+        dto.setBio(user.getBio());
+        dto.setProfilePictureUrl(user.getProfilePictureUrl());
+        dto.setJoinedDate(user.getCreatedAt()); // Assuming this is your joined date
+
+        return ResponseEntity.ok(dto);
     }
 
     /**
@@ -151,12 +184,16 @@ public class AuthController {
         }
 
         String email = jwtService.extractUsername(token);
-        User existingUser = userRepository.findByEmail(email);
-        if (existingUser == null) {
+        // findByEmail returns Optional<User>, so handle it
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (!userOpt.isPresent()) {
             return ResponseEntity.status(404).body("User not found");
         }
 
+        User existingUser = userOpt.get();
+        // Update username, bio, and profile picture URL from the request
         existingUser.setUsername(updatedUser.getUsername());
+        existingUser.setBio(updatedUser.getBio());
         existingUser.setProfilePictureUrl(updatedUser.getProfilePictureUrl());
 
         userRepository.save(existingUser);
@@ -197,6 +234,7 @@ public class AuthController {
 
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
+
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
     }

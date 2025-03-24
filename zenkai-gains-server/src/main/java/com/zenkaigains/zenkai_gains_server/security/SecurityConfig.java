@@ -1,8 +1,8 @@
 package com.zenkaigains.zenkai_gains_server.security;
 
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,10 +19,10 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JWTAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(withDefaults()) // uses the CorsConfigurationSource bean defined below
+                .cors(withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/register",
@@ -30,11 +30,19 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/oauth/google/**",
                                 "/api/upload-profile-picture",
-                                "/api/profile"    // Add this endpoint
+                                "/api/profile",
+                                "/api/public/**",
+                                "/api/transformation",
+                                "/api/transformation/upload-url"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .formLogin(form -> form.disable());
+                .formLogin(form -> form.disable())
+                // Disable anonymous authentication so that requests without valid JWT fail outright.
+                .anonymous(anonymous -> anonymous.disable());
+
+        // Ensure our JWT filter runs before any filter that might set anonymous authentication.
+        http.addFilterBefore(jwtAuthenticationFilter, AnonymousAuthenticationFilter.class);
 
         return http.build();
     }
@@ -52,5 +60,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
 }
