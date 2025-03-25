@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import NavBar from '@/components/ui/nav-bar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +23,18 @@ import {
   Edit2,
 } from 'lucide-react';
 
+interface MeResponse {
+  email: string;
+  roles: string[];
+}
+
 export default function AdminPage() {
+  const router = useRouter();
+
+  // For verifying admin
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // For muscle groups
   const [muscleGroups, setMuscleGroups] = useState<{ [key: string]: string[] }>({});
   const [newMuscleGroup, setNewMuscleGroup] = useState('');
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState('');
@@ -30,14 +42,52 @@ export default function AdminPage() {
   const [editMode, setEditMode] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
-  // Fetch existing muscle groups from the Spring Boot backend
+  // 1) On mount, call /auth/me with credentials: 'include'
   useEffect(() => {
+    async function checkAdminStatus() {
+      try {
+        const res = await fetch('http://localhost:8080/auth/me', {
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          // If user is not authenticated or forbidden, redirect
+          console.error('Not authorized. Server responded with', res.status);
+          router.push('/');
+          return;
+        }
+        const data: MeResponse = await res.json();
+        console.log('User info from /auth/me:', data);
+
+        // Check if user has ROLE_ADMIN
+        if (data.roles.includes('ROLE_ADMIN')) {
+          console.log('Admin role found.');
+          setIsAuthorized(true);
+        } else {
+          console.log('No admin role, redirecting...');
+          router.push('/');
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        router.push('/');
+      }
+    }
+    checkAdminStatus();
+  }, [router]);
+
+  // 2) If isAuthorized, fetch muscle groups
+  useEffect(() => {
+    if (!isAuthorized) return;
+
     async function fetchMuscleGroups() {
       try {
-        const res = await fetch('http://localhost:8080/api/workouts');
-        if (!res.ok) throw new Error('Failed to fetch workouts');
+        const res = await fetch('http://localhost:8080/api/workouts', {
+          credentials: 'include', // The JWT cookie is automatically sent
+        });
+        if (!res.ok) {
+          throw new Error('Failed to fetch workouts');
+        }
         const data = await res.json();
-        // Convert the response (array of MuscleGroup objects) into an object map for easier use on the client
+
         const muscleGroupsMap: { [key: string]: string[] } = {};
         data.forEach((mg: { name: string; exercises: string[] }) => {
           muscleGroupsMap[mg.name] = mg.exercises;
@@ -48,28 +98,25 @@ export default function AdminPage() {
       }
     }
     fetchMuscleGroups();
-  }, []);
+  }, [isAuthorized]);
 
+  // If user not authorized yet, show nothing (or a spinner)
+  if (!isAuthorized) {
+    return null; 
+  }
+
+  // 3) Event handlers rely on the cookie for auth
   const handleAddMuscleGroup = async () => {
     if (!newMuscleGroup.trim()) return;
-    
     try {
       const res = await fetch('http://localhost:8080/api/workouts', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newMuscleGroup,
-          exercises: [],
-        }),
+        body: JSON.stringify({ name: newMuscleGroup, exercises: [] }),
       });
-      
       if (!res.ok) throw new Error('Failed to add muscle group');
-      
-      // Update local state if the backend call was successful
-      setMuscleGroups({
-        ...muscleGroups,
-        [newMuscleGroup]: [],
-      });
+      setMuscleGroups(prev => ({ ...prev, [newMuscleGroup]: [] }));
       setNewMuscleGroup('');
     } catch (error) {
       console.error('Error adding muscle group:', error);
@@ -78,22 +125,19 @@ export default function AdminPage() {
 
   const handleAddExercise = async () => {
     if (!selectedMuscleGroup || !newExercise.trim()) return;
-    
     try {
       const res = await fetch(`http://localhost:8080/api/workouts/${selectedMuscleGroup}/exercises`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          exercise: newExercise,
-        }),
+        body: JSON.stringify({ exercise: newExercise }),
       });
-      
       if (!res.ok) throw new Error('Failed to add exercise');
-      
-      setMuscleGroups({
-        ...muscleGroups,
-        [selectedMuscleGroup]: [...(muscleGroups[selectedMuscleGroup] || []), newExercise],
-      });
+
+      setMuscleGroups(prev => ({
+        ...prev,
+        [selectedMuscleGroup]: [ ...(prev[selectedMuscleGroup] || []), newExercise ],
+      }));
       setNewExercise('');
     } catch (error) {
       console.error('Error adding exercise:', error);
@@ -104,14 +148,14 @@ export default function AdminPage() {
     try {
       const res = await fetch(`http://localhost:8080/api/workouts/${muscleGroup}/exercises/${exercise}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
-      
       if (!res.ok) throw new Error('Failed to delete exercise');
-      
-      setMuscleGroups({
-        ...muscleGroups,
-        [muscleGroup]: muscleGroups[muscleGroup].filter(e => e !== exercise),
-      });
+
+      setMuscleGroups(prev => ({
+        ...prev,
+        [muscleGroup]: prev[muscleGroup].filter(e => e !== exercise),
+      }));
     } catch (error) {
       console.error('Error deleting exercise:', error);
     }
@@ -121,12 +165,14 @@ export default function AdminPage() {
     try {
       const res = await fetch(`http://localhost:8080/api/workouts/${muscleGroup}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
-      
       if (!res.ok) throw new Error('Failed to delete muscle group');
-      
-      const { [muscleGroup]: _, ...rest } = muscleGroups;
-      setMuscleGroups(rest);
+
+      setMuscleGroups(prev => {
+        const { [muscleGroup]: _, ...rest } = prev;
+        return rest;
+      });
       if (selectedMuscleGroup === muscleGroup) {
         setSelectedMuscleGroup('');
       }
@@ -141,29 +187,23 @@ export default function AdminPage() {
       setEditName('');
       return;
     }
-
     try {
       const res = await fetch(`http://localhost:8080/api/workouts/${oldName}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          newName: editName,
-        }),
+        body: JSON.stringify({ newName: editName }),
       });
-      
       if (!res.ok) throw new Error('Failed to update muscle group');
-      
-      const exercises = muscleGroups[oldName];
-      const { [oldName]: _, ...rest } = muscleGroups;
-      setMuscleGroups({
-        ...rest,
-        [editName]: exercises,
+
+      setMuscleGroups(prev => {
+        const exercises = prev[oldName];
+        const { [oldName]: _, ...rest } = prev;
+        return { ...rest, [editName]: exercises };
       });
-      
       if (selectedMuscleGroup === oldName) {
         setSelectedMuscleGroup(editName);
       }
-      
       setEditMode(null);
       setEditName('');
     } catch (error) {
@@ -171,6 +211,7 @@ export default function AdminPage() {
     }
   };
 
+  // 4) Render the Admin UI
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
       {/* Background */}
@@ -299,7 +340,10 @@ export default function AdminPage() {
             <CardContent>
               <div className="space-y-6">
                 {Object.entries(muscleGroups).map(([group, exercises]) => (
-                  <div key={group} className="bg-black/40 p-4 rounded-lg border border-red-500/10">
+                  <div
+                    key={group}
+                    className="bg-black/40 p-4 rounded-lg border border-red-500/10"
+                  >
                     <div className="flex items-center justify-between mb-4">
                       {editMode === group ? (
                         <div className="flex items-center space-x-2">
@@ -359,7 +403,9 @@ export default function AdminPage() {
                           key={exercise}
                           className="flex items-center justify-between bg-black/30 p-2 rounded border border-red-500/10"
                         >
-                          <span className="text-sm text-orange-200">{exercise}</span>
+                          <span className="text-sm text-orange-200">
+                            {exercise}
+                          </span>
                           <Button
                             variant="ghost"
                             size="icon"

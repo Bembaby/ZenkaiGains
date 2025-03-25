@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -7,42 +7,51 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Flame, Dumbbell, LineChart, Camera, User } from "lucide-react";
 
+// Define the structure returned by /auth/me
+interface MeResponse {
+  email: string;
+  roles: string[];
+}
+
 export default function NavBar() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Handle scroll effect for navbar
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
+      setScrolled(window.scrollY > 20);
     };
     
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Check authentication status on mount
+  // Check authentication and admin status on mount using /auth/me
   useEffect(() => {
-    const checkAuth = async () => {
+    async function checkAuth() {
       try {
         const res = await fetch("http://localhost:8080/auth/me", {
           method: "GET",
           credentials: "include",
         });
         if (res.ok) {
+          const data: MeResponse = await res.json();
           setAuthenticated(true);
+          if (data.roles.includes("ROLE_ADMIN")) {
+            setIsAdmin(true);
+          }
         } else {
           setAuthenticated(false);
+          setIsAdmin(false);
         }
       } catch (error) {
         setAuthenticated(false);
+        setIsAdmin(false);
       }
-    };
+    }
     checkAuth();
   }, []);
 
@@ -77,8 +86,8 @@ export default function NavBar() {
       <div className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo / Branding */}
         <div 
-            className="flex items-center space-x-2 cursor-pointer group" 
-            onClick={() => router.push(authenticated ? "/home" : "/")}
+          className="flex items-center space-x-2 cursor-pointer group" 
+          onClick={() => router.push(authenticated ? "/home" : "/")}
         >
           <motion.div 
             className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-800 rounded-lg flex items-center justify-center overflow-hidden border border-red-700"
@@ -111,6 +120,12 @@ export default function NavBar() {
             <NavigationMenuItem>
               <NavButton label="Transformation Vault" icon={<Camera className="w-4 h-4" />} onClick={() => router.push("/transformation-vault")} />
             </NavigationMenuItem>
+            {/* Only show Admin link if user is admin */}
+            {isAdmin && (
+              <NavigationMenuItem>
+                <NavButton label="Admin" icon={<User className="w-4 h-4" />} onClick={() => router.push("/admin")} />
+              </NavigationMenuItem>
+            )}
           </NavigationMenuList>
         </NavigationMenu>
 
@@ -130,7 +145,6 @@ export default function NavBar() {
               className="border-red-600 text-red-500 hover:bg-red-900/20 hover:text-red-400 transition-all"
               size="sm"
             >
-              <User className="w-4 h-4 mr-2" />
               Profile
             </Button>
           </div>

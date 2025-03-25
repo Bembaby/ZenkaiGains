@@ -20,6 +20,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.5.0",
+    "jwt-decode": "^4.0.0",
     "lucide-react": "^0.477.0",
     "multer": "^1.4.5-lts.2",
     "next": "15.2.1",
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/jwt-decode": "^2.2.1",
     "@types/multer": "^1.4.12",
     "@types/node": "^20",
     "@types/react": "^19",
